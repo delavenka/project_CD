@@ -1,4 +1,4 @@
-# 1. Prometheus Deployment
+# 1. Prometheus Deployment (Volumes ve ServiceAccount eklendi)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -13,22 +13,29 @@ spec:
       labels:
         app: {{ .Values.prometheus.appName }}
     spec:
+      serviceAccountName: prometheus-sa
       containers:
       - name: prometheus
-        image: prom/prometheus:latest  # Prometheus'un resmi Docker imajı kullanılıyor.
+        image: prom/prometheus:latest
         args:
-          - "--config.file=/etc/prometheus/prometheus.yml"  # ConfigMap ile sağlanan yapılandırma dosyası belirtiliyor.
+          - "--config.file=/etc/prometheus/prometheus.yml"
         ports:
-        - containerPort: 9090  # Prometheus web arayüzü için kullanılan port.
+        - containerPort: 9090
         volumeMounts:
           - name: config-volume
-            mountPath: /etc/prometheus  # ConfigMap içeriğinin bağlandığı dizin.
+            mountPath: /etc/prometheus
+          - name: rules-volume
+            mountPath: /etc/prometheus/alert-rules.yml
+            subPath: alert-rules.yml
       volumes:
         - name: config-volume
           configMap:
-            name: prometheus-config  # ConfigMap kullanılarak yapılandırma dosyası bağlanıyor.
+            name: prometheus-config
+        - name: rules-volume
+          configMap:
+            name: prometheus-rules
 ---
-# 2. Prometheus Service
+# 2. Prometheus Service (Aynı Kaldı)
 apiVersion: v1
 kind: Service
 metadata:
@@ -43,8 +50,7 @@ spec:
     targetPort: {{ .Values.prometheus.service.targetPort }}
     nodePort: {{ .Values.prometheus.service.nodePort }}
 ---
-# 3. Prometheus ConfigMap
-# 3. Prometheus ConfigMap
+# 3. Prometheus ConfigMap (Alerting Kısmı Eklendi)
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -55,12 +61,20 @@ data:
     global:
       scrape_interval: 15s
 
+    rule_files:
+      - "/etc/prometheus/alert-rules.yml"
+
+    alerting:
+      alertmanagers:
+      - static_configs:
+        - targets:
+          - "alertmanager-service:9093"
+
     scrape_configs:
       - job_name: 'prometheus'
         static_configs:
           - targets: ['localhost:9090']
 
-      # ASIL RAM VERİSİ BURADAN GELECEK 
       - job_name: 'kubernetes-cadvisor'
         scheme: https
         metrics_path: /metrics/cadvisor
@@ -71,7 +85,6 @@ data:
         kubernetes_sd_configs:
           - role: node
 
-      # POD'ların kendi metrikleri (Eğer exporter olsaydi buradan gelirdi)
       - job_name: 'kubernetes-pods'
         kubernetes_sd_configs:
           - role: pod
@@ -79,7 +92,6 @@ data:
           - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
             action: keep
             regex: true
-          # HATA ÇÖZÜCÜ: Adresi IP:PORT formatina getirir (lookup 80 hatasini çözer)
           - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
             action: replace
             regex: ([^:]+)(?::\d+)?;(\d+)
