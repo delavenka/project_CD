@@ -8,11 +8,14 @@ frontend:
   deploymentName: frontend-deployment
   serviceName: frontend-service
   appName: todo-frontend
-  replicaCount: 1
   image: harbor.bilgem.tubitak.gov.tr/tmp/todo-frontend
   imageTag: latest
   imagePullPolicy: Always
   containerPort: 80
+  cpuRequest: "200m"
+  memoryRequest: "128Mi"
+  cpuLimits: "500m"
+  memoryLimits: "256Mi"
   service:
     type: NodePort
     port: 80
@@ -61,7 +64,7 @@ db:
     dbNameKey: DB_NAME
     passKey: DB_PASS
 
-# Hocanın istediği: Configmap içeriği values'dan alınacak
+# Configmap içeriği values'dan alınacak
 configData:
   DB_USER: "myuser"
   DB_NAME: "tododb"
@@ -70,5 +73,20 @@ configData:
 # Secret verileri
 secretData:
   DB_PASS: "mypassword"
+
+prometheus:
+  deploymentName: promethues-deployment
+  serviceName: promethues-service
+  appName: todo-prometheus
+  image: prom/prometheus
+  imageTag: latest
+  imagePullPolicy: Always
+  containerPort: 9090
+  service:
+    type: NodePort
+    port: 9090
+    targetPort: 9090
+    nodePort: 30002
+
 
 

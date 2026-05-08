@@ -1,0 +1,44 @@
+# 1. Deployment Bölümü
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.prometheus.deploymentName }}
+  namespace: {{ .Values.global.namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.prometheus.appName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.prometheus.appName }}
+    spec:
+      containers:
+      - name: prometheus
+        image: "{{ .Values.prometheus.image }}:{{ .Values.prometheus.imageTag }}"
+        imagePullPolicy: {{ .Values.prometheus.pullPolicy | default "Always" }}
+        volumeMounts:
+          - name: config-volume
+            mountPath: /etc/prometheus/    # ConfigMap buraya bir dosya olarak inecek
+        ports:
+        - containerPort: {{ .Values.prometheus.containerPort | default 80 }}
+      volumes:
+      - name: config-volume
+        configMap:
+          name: prometheus-config   # Yukarıda oluşturduğumuz ConfigMap adı
+---
+# 2. Service Bölümü
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.prometheus.serviceName }}
+  namespace: {{ .Values.global.namespace }}
+spec:
+  type: {{ .Values.prometheus.service.type }}
+  selector:
+    app: {{ .Values.prometheus.appName }}
+  ports:
+  - port: {{ .Values.prometheus.service.port }}
+    targetPort: {{ .Values.prometheus.service.targetPort }}
+    nodePort: {{ .Values.prometheus.service.nodePort }}
+    
