@@ -44,6 +44,7 @@ spec:
     nodePort: {{ .Values.prometheus.service.nodePort }}
 ---
 # 3. Prometheus ConfigMap
+# 3. Prometheus ConfigMap
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -59,7 +60,7 @@ data:
         static_configs:
           - targets: ['localhost:9090']
 
-      # POD'larin RAM/CPU verisini tutan asil yer burasidir (cAdvisor)
+      # ASIL RAM VERİSİ BURADAN GELECEK 
       - job_name: 'kubernetes-cadvisor'
         scheme: https
         metrics_path: /metrics/cadvisor
@@ -69,3 +70,22 @@ data:
         bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
         kubernetes_sd_configs:
           - role: node
+
+      # POD'ların kendi metrikleri (Eğer exporter olsaydi buradan gelirdi)
+      - job_name: 'kubernetes-pods'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          # HATA ÇÖZÜCÜ: Adresi IP:PORT formatina getirir (lookup 80 hatasini çözer)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
