@@ -105,21 +105,6 @@ data:
             target_label: __metrics_path__
             regex: (.+)
 ---
-# 2. Prometheus Service (Aynı Kaldı)
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ .Values.prometheus.serviceName }}
-  namespace: {{ .Values.global.namespace }}
-spec:
-  type: {{ .Values.prometheus.service.type }}
-  selector:
-    app: {{ .Values.prometheus.appName }}
-  ports:
-  - port: {{ .Values.prometheus.service.port }}
-    targetPort: {{ .Values.prometheus.service.targetPort }}
-    nodePort: {{ .Values.prometheus.service.nodePort }}
----
 # 3. Prometheus ConfigMap (Alerting Kısmı Eklendi)
 apiVersion: v1
 kind: ConfigMap
