@@ -74,19 +74,5 @@ configData:
 secretData:
   DB_PASS: "mypassword"
 
-prometheus:
-  deploymentName: promethues-deployment
-  serviceName: promethues-service
-  appName: todo-prometheus
-  image: prom/prometheus
-  imageTag: latest
-  imagePullPolicy: Always
-  containerPort: 9090
-  service:
-    type: NodePort
-    port: 9090
-    targetPort: 9090
-    nodePort: 30002
-
 
 
